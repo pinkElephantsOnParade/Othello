@@ -18,6 +18,9 @@ import java.awt.event.MouseEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 
+import java.util.ArrayList;
+import java.util.List;
+
 class ShowWindow extends Frame{
 
     Button btn;
@@ -26,20 +29,27 @@ class ShowWindow extends Frame{
     Point handPoint;
     Graphics panelGraphics;
     /* none : 0
-       white : 1
-       black : 2
+       white(first) : 1
+       black(second) : -1
     */
     Integer[][] boardFlag = {{0,0,0,0,0,0,0,0},
                             {0,0,0,0,0,0,0,0},
                             {0,0,0,0,0,0,0,0},
-                            {0,0,0,1,2,0,0,0},
-                            {0,0,0,2,1,0,0,0},
+                            {0,0,0,1,-1,0,0,0},
+                            {0,0,0,-1,1,0,0,0},
                             {0,0,0,0,0,0,0,0},
                             {0,0,0,0,0,0,0,0},
                             {0,0,0,0,0,0,0,0}};
 
+    Player first;
+    Player second;
+    /* 1 : first -1 : second */
+    Integer active = 1;
+
     public ShowWindow(){
         initLayout();
+        first = new Player(2);
+        second = new Player(2);
     }
 
 	public static void main (String[] args){
@@ -142,15 +152,17 @@ class ShowWindow extends Frame{
     private void panelListener(){
         panel.addMouseListener(new MouseAdapter(){
             public void mouseClicked(MouseEvent e){
-                System.out.println(e.paramString());
-                handPoint = calcHandPoint(e.getPoint());
+
+                handPoint = calcHandPoint(e.getPoint(), active);
 
                 if(-1 < handPoint.getX() && -1 < handPoint.getY()){
                     panelGraphics = panel.getGraphics();
+
                     panelGraphics.drawOval((int)handPoint.getX(),
                                             (int)handPoint.getY(),
                                             40,40);
                     panel.paint(panelGraphics);
+                    active *= -1;
                 }
             }
         });
@@ -165,7 +177,7 @@ class ShowWindow extends Frame{
         });        
     }
 
-    private Point calcHandPoint(Point p){
+    private Point calcHandPoint(Point p, Integer active){
         Integer iX;
         Integer iY;
         Point optPoint = new Point(-1, -1);
@@ -173,12 +185,146 @@ class ShowWindow extends Frame{
         iX = (int)((p.getX() - 160.0) / 50);
         iY = (int)((p.getY() - 70.0) / 50);
 
-        if( (-1 < iX && iX < 8) && (-1 < iY && iY < 8) ){
-            optPoint.setLocation(
-                165 + iX * 50,
-                75 + iY * 50);
+        if( (-1 < iX && iX < 8) && (-1 < iY && iY < 8)){
+            if(checkPiece(iX, iY, active)){
+                optPoint.setLocation(
+                    165 + iX * 50,
+                    75 + iY * 50);
+            }
         }
+
         return optPoint;
+    }
+
+    private boolean checkPiece(Integer x, Integer y, Integer active){
+
+        List<Point> revAllList;
+        List<Point> revLineList;
+        int opposite;
+
+        revAllList = new ArrayList<>();
+        revLineList = new ArrayList<>();
+
+        // white
+        if(active == 1 ){
+            opposite = -1;   // black
+        } 
+        // black
+        else{
+            opposite = 1;   // white
+        }
+        
+        System.out.println("x = " + x + ",y = " + y + ",op = " + opposite);
+
+        //left - top
+        if(0 < x && 0 < y){            
+            for(int i = 1 ; 0 < x - i && 0 < y - i ; i++){
+                if(opposite == boardFlag[x - i][y - i]){       
+                    revLineList.add(new Point(x - i, y - i));
+                } else if ( i != 1 && (opposite * -1) == boardFlag[x - i][y - i]){
+                    revAllList.addAll(revLineList);
+                    break;
+                }
+            }
+        }
+        revLineList.clear();
+
+        //center - top
+        if(0 < y){            
+            for(int i = 1 ; 0 < y - i ; i++){
+                if(opposite == boardFlag[x][y - i]){       
+                    revLineList.add(new Point(x, y - i));
+                } else if ( i != 1 && (opposite * -1) == boardFlag[x][y - i]){
+                    revAllList.addAll(revLineList);
+                    break;
+                }
+            }
+        }
+        revLineList.clear();
+
+        //right - top
+        if(x < 8 && 0 < y){            
+            for(int i = 1 ; x + i < 8 && 0 < y - i ; i++){
+                if(opposite == boardFlag[x + i][y - i]){       
+                    revLineList.add(new Point(x + i, y - i));
+                } else if ( i != 1 && (opposite * -1) == boardFlag[x + i][y - i]){
+                    revAllList.addAll(revLineList);
+                    break;
+                }
+            }
+        }
+        revLineList.clear();
+
+        //left
+        if( 0 < x ){            
+            for(int i = 1 ; 0 < x - i ; i++){
+                if(opposite == boardFlag[x - i][y]){       
+                    revLineList.add(new Point(x - i, y));
+                } else if ( i != 1 && (opposite * -1) == boardFlag[x - i][y]){
+                    revAllList.addAll(revLineList);
+                    break;
+                }
+            }
+        }
+        revLineList.clear();
+
+        //right
+        if( x < 8){            
+            for(int i = 1 ; x + i < 8; i++){
+                if(opposite == boardFlag[x + i][y]){       
+                    revLineList.add(new Point(x + i, y));
+                } else if ( i != 1 && (opposite * -1) == boardFlag[x + i][y]){
+                    revAllList.addAll(revLineList);
+                    break;
+                }
+            }
+        }
+        revLineList.clear();
+
+        //left - bottom
+        if(0 < x && y < 8){            
+            for(int i = 1 ; 0 < x - i && y + i < 8; i++){
+                if(opposite == boardFlag[x - i][y + i]){       
+                    revLineList.add(new Point(x - i, y + i));
+                } else if ( i != 1 && (opposite * -1) == boardFlag[x - i][y + i]){
+                    revAllList.addAll(revLineList);
+                    break;
+                }
+            }
+        }
+        revLineList.clear();
+
+        //center - bottom
+        if(y < 8){            
+            for(int i = 1 ; y + i < 8; i++){
+                if(opposite == boardFlag[x][y + i]){       
+                    revLineList.add(new Point(x, y + i));
+                } else if ( i != 1 && (opposite * -1) == boardFlag[x][y + i]){
+                    revAllList.addAll(revLineList);
+                    break;
+                }
+            }
+        }
+        revLineList.clear();
+
+        //right - bottom
+        if(x < 8 && y < 8){            
+            for(int i = 1 ; x + i < 8 && y + i < 8; i++){
+                if(opposite == boardFlag[x + i][y + i]){       
+                    revLineList.add(new Point(x + i, y + i));
+                } else if ( i != 1 && (opposite * -1) == boardFlag[x + i][y + i]){
+                    revAllList.addAll(revLineList);
+                    break;
+                }
+            }
+        }
+        revLineList.clear();
+
+        for(int i = 0; i < revAllList.size() ;i++){
+            System.out.println(revAllList.get(i));
+        }
+
+        return true;
     }
 
     private void closed(){
