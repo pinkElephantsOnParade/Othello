@@ -90,11 +90,8 @@ class Othello extends Frame implements Runnable{
                 panelGraphics.drawOval(365, 275, 40, 40);
                 initPiece = false;
             }
-            
-            /*
-                Thread.sleep(1000);
+                Thread.sleep(500);
                 scanCandidateArea();
-            */
         }catch(InterruptedException e){
             System.out.println(e.toString());
         }
@@ -247,14 +244,7 @@ class Othello extends Frame implements Runnable{
                     } else {
                         active *= -1;       //change player   
                         turnMessage();
-                        /*
-                        try{
-                            Thread.sleep(5000);
-                            scanCandidateArea();
-                        }catch(InterruptedException ex){
-                            System.out.println(e.toString());
-                        }
-                        */
+                        scanCandidateArea();
                     }
                     revAllList.clear();
                 }
@@ -467,7 +457,7 @@ class Othello extends Frame implements Runnable{
 
        for(int y = 0; y < 8; y++){
             for(int x = 0; x < 8; x++){
-                if(reversePiece(x, y)){
+                if(reversePiece(x, y) && boardFlag[x][y] == 0){
                     panelGraphics.setColor(candidateBlue);
                     panelGraphics.fillRect(x * 50 + 161,
                            y * 50 + 71, 49, 49);
