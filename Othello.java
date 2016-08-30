@@ -50,9 +50,11 @@ class Othello extends Frame implements Runnable{
     Integer active = 1;
     List<Point> revAllList;
     boolean onTheGame = true;
+    boolean initPiece = true;
 
     Color boardGREEN;
     Color operateYELLOW;
+    Color candidateBlue;
 
     Label titleLabel;
     Label whiteCountLabel;
@@ -64,6 +66,7 @@ class Othello extends Frame implements Runnable{
     public Othello(){
         boardGREEN = new Color(0,222,0);
         operateYELLOW = new Color(200,200,0);
+        candidateBlue = new Color(115, 184, 226);
         firstPlayer = new Player(2);
         secondPlayer = new Player(2);
         initLayout();
@@ -77,13 +80,21 @@ class Othello extends Frame implements Runnable{
     public void run(){
 
         try{
-            Thread.sleep(500);
-            //init chip
-            panelGraphics = panel.getGraphics();
-            panelGraphics.drawOval(315, 225, 40, 40);
-            panelGraphics.fillOval(365, 225, 40, 40);
-            panelGraphics.fillOval(315, 275, 40, 40);
-            panelGraphics.drawOval(365, 275, 40, 40);
+            //駒の初期配置
+            if(initPiece){
+                Thread.sleep(500);
+                panelGraphics = panel.getGraphics();
+                panelGraphics.drawOval(315, 225, 40, 40);
+                panelGraphics.fillOval(365, 225, 40, 40);
+                panelGraphics.fillOval(315, 275, 40, 40);
+                panelGraphics.drawOval(365, 275, 40, 40);
+                initPiece = false;
+            }
+            
+            /*
+                Thread.sleep(1000);
+                scanCandidateArea();
+            */
         }catch(InterruptedException e){
             System.out.println(e.toString());
         }
@@ -205,17 +216,16 @@ class Othello extends Frame implements Runnable{
             public void mouseClicked(MouseEvent e){
 
                 String turnText = "";
-                handPoint = calcHandPoint(e.getPoint(), active);
+                //指す場所を選ぶ
+                handPoint = calcHandPoint(e.getPoint());
 
                 if(-1 < handPoint.getX() && -1 < handPoint.getY() && onTheGame){
                     if(active == 1){
                         //white
                         reverseWhite((int)handPoint.getX(), (int)handPoint.getY());
-                        turnText = "黒のターン";
                     }else{
                         //black
                         reverseBlack((int)handPoint.getX(), (int)handPoint.getY());
-                        turnText = "白のターン";
                     }
 
                     firstPlayer.setScore(whiteCount());
@@ -233,12 +243,20 @@ class Othello extends Frame implements Runnable{
                         }else{
                             turnText = "引き分け";
                         }
+                        playerTurnLabel.setText(turnText);
+                    } else {
+                        active *= -1;       //change player   
+                        turnMessage();
+                        /*
+                        try{
+                            Thread.sleep(5000);
+                            scanCandidateArea();
+                        }catch(InterruptedException ex){
+                            System.out.println(e.toString());
+                        }
+                        */
                     }
-
-                    playerTurnLabel.setText(turnText);
-
                     revAllList.clear();
-                    active *= -1;       //change player
                 }
                 
             }
@@ -254,7 +272,7 @@ class Othello extends Frame implements Runnable{
         });        
     }
 
-    private Point calcHandPoint(Point p, Integer active){
+    private Point calcHandPoint(Point p){
         Integer iX;
         Integer iY;
         Point optPoint = new Point(-1, -1);
@@ -263,7 +281,7 @@ class Othello extends Frame implements Runnable{
         iY = (int)((p.getY() - 70.0) / 50);
 
         if( (-1 < iX && iX < 8) && (-1 < iY && iY < 8)){
-            reversePiece(iX, iY, active);
+            reversePiece(iX, iY);
             if(0 < revAllList.size()){
                 optPoint.setLocation(
                     165 + iX * 50,
@@ -273,7 +291,7 @@ class Othello extends Frame implements Runnable{
         return optPoint;
     }
 
-    private void reversePiece(Integer x, Integer y, Integer active){
+    private boolean reversePiece(Integer x, Integer y){
 
         List<Point> revLineList;
         int opposite;
@@ -436,13 +454,44 @@ class Othello extends Frame implements Runnable{
         }
         revLineList.clear();
 
-        for(Point p :revAllList){
+        for(Point p : revAllList){
             System.out.println("[All]" + p);
         }
 
+        return  0 < revAllList.size() ? true : false;
     }
 
-    public void reverseWhite(int initX, int initY){
+    private void scanCandidateArea(){
+
+        int count = 0;
+
+       for(int y = 0; y < 8; y++){
+            for(int x = 0; x < 8; x++){
+                if(reversePiece(x, y)){
+                    panelGraphics.setColor(candidateBlue);
+                    panelGraphics.fillRect(x * 50 + 161,
+                           y * 50 + 71, 49, 49);
+                    count++;
+                } else {
+                    if(boardFlag[x][y] == 1){
+                        putWhite(panelGraphics,x,y);
+                    }else if(boardFlag[x][y] == -1){
+                        putBlack(panelGraphics,x,y);
+                    }else {
+                        putBlankArea(panelGraphics,x,y);
+                    }                    
+                }
+                revAllList.clear();
+            }
+       }
+
+       if(count == 0){
+            active *= -1;
+            turnMessage();
+       }
+    }
+
+    private void reverseWhite(int initX, int initY){
         Point g = pointToGrid(initX, initY);
         boardFlag[(int)g.getX()][(int)g.getY()] = 1;
 
@@ -450,19 +499,13 @@ class Othello extends Frame implements Runnable{
         panelGraphics.drawOval(initX, initY, 40, 40);
         for(Point p : revAllList){
             boardFlag[(int)p.getX()][(int)p.getY()] = 1;
-            panelGraphics.setColor(boardGREEN);
-            panelGraphics.fillRect((int)(p.getX() * 50) + 161,
-                                    (int)(p.getY() * 50) + 71, 49, 49);
-            panelGraphics.setColor(Color.black);
-            panelGraphics.drawOval((int)p.getX() * 50 + 165,
-                                    (int)p.getY() * 50 + 75, 40, 40);
-                                    
+            putWhite(panelGraphics, (int)p.getX(), (int)p.getY());
         }
         panel.paint(panelGraphics);
         printBoard();
     }
 
-    public void reverseBlack(int initX, int initY){
+    private void reverseBlack(int initX, int initY){
         Point g = pointToGrid(initX, initY);
         boardFlag[(int)g.getX()][(int)g.getY()] = -1;
 
@@ -471,15 +514,29 @@ class Othello extends Frame implements Runnable{
 
         for(Point p : revAllList){
             boardFlag[(int)p.getX()][(int)p.getY()] = -1;
-            panelGraphics.setColor(boardGREEN);
-            panelGraphics.fillRect((int)p.getX() * 50 + 161,
-                                    (int)p.getY() * 50 + 71, 49, 49);
-            panelGraphics.setColor(Color.black);
-            panelGraphics.fillOval((int)p.getX() * 50 + 165,
-                                    (int)p.getY() * 50 + 75, 40, 40);
+            putBlack(panelGraphics, (int)p.getX(), (int)p.getY());
         }
         panel.paint(panelGraphics);
         printBoard();
+    }
+
+    public void putWhite(Graphics g, int x, int y){
+        g.setColor(boardGREEN);
+        g.fillRect(x * 50 + 161, y * 50 + 71, 49, 49);
+        g.setColor(Color.black);
+        g.drawOval(x * 50 + 165, y * 50 + 75, 40, 40);
+    }
+
+    public void putBlack(Graphics g, int x, int y){
+        g.setColor(boardGREEN);
+        g.fillRect(x * 50 + 161, y * 50 + 71, 49, 49);
+        g.setColor(Color.black);
+        g.fillOval(x * 50 + 165, y * 50 + 75, 40, 40);
+    }
+
+    public void putBlankArea(Graphics g, int x, int y){
+        g.setColor(boardGREEN);
+        g.fillRect(x * 50 + 161, y * 50 + 71, 49, 49);
     }
 
     private void printBoard(){
@@ -556,6 +613,16 @@ class Othello extends Frame implements Runnable{
             y * 50 + 70
             );
         return pt;
+    }
+
+    private void turnMessage(){
+        String turnText = "";
+        if(active == 1){
+            turnText = "白のターン";
+        }else{
+            turnText = "黒のターン";
+        }
+        playerTurnLabel.setText(turnText);
     }
 
     private void closed(){
