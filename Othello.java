@@ -1,6 +1,8 @@
 import java.awt.BorderLayout;
 import java.awt.Button;
 import java.awt.Canvas;
+import java.awt.Checkbox;
+import java.awt.CheckboxGroup;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Cursor;
@@ -13,6 +15,8 @@ import java.awt.Point;
 import java.awt.Window;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.ItemEvent;
+import java.awt.event.ItemListener;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
@@ -22,10 +26,12 @@ import java.awt.event.WindowEvent;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
-class Othello extends Frame implements Runnable{
+class Othello extends Frame implements ItemListener, Runnable{
 
-    Button btn;
+    Button startButton;
+    Button exitButton;
     Canvas canvas;
     Panel panel;
     Point handPoint;
@@ -34,7 +40,7 @@ class Othello extends Frame implements Runnable{
        white(first) : 1
        black(second) : -1
     */
-    Integer[][] boardFlag = {{0,0,0,0,0,0,0,0},
+    static Integer[][] boardFlag = {{0,0,0,0,0,0,0,0},
                             {0,0,0,0,0,0,0,0},
                             {0,0,0,0,0,0,0,0},
                             {0,0,0,1,-1,0,0,0},
@@ -47,14 +53,15 @@ class Othello extends Frame implements Runnable{
     Player secondPlayer;
     
     /* 1 : first -1 : second */
-    Integer active = 1;
+    static Integer active = 1;
     List<Point> revAllList;
-    boolean onTheGame = true;
+    boolean onTheGame = false;
     boolean initPiece = true;
 
     Color boardGREEN;
     Color operateYELLOW;
     Color candidateBlue;
+    Color playerSilver;
 
     Label titleLabel;
     Label whiteCountLabel;
@@ -63,22 +70,46 @@ class Othello extends Frame implements Runnable{
     Font  countLabelFont;
     Font  turnLabelFont;
 
+    Panel whiteOperatePanel;
+    Panel blackOperatePanel;
+
+    CheckboxGroup whitePlayerType;
+    CheckboxGroup blackPlayerType;
+
+    Checkbox whiteHuman;
+    Checkbox whiteRandom;
+    Checkbox whiteTwoTree;
+    Checkbox whiteThreeTree;
+
+    Checkbox blackHuman;
+    Checkbox blackRandom;
+    Checkbox blackTwoTree;
+    Checkbox blackThreeTree;
+
+    static Othello game;
+    static Thread cpuThread;
+
     public Othello(){
         boardGREEN = new Color(0,222,0);
         operateYELLOW = new Color(200,200,0);
         candidateBlue = new Color(115, 184, 226);
-        firstPlayer = new Player(2);
-        secondPlayer = new Player(2);
+        playerSilver = new  Color(192, 192, 192);
+        firstPlayer = new Player(2, null);
+        secondPlayer = new Player(2, new RandomStrategy());
+        revAllList = new ArrayList<>();
         initLayout();
     }
 
 	public static void main (String[] args){
-        Othello game = new Othello();
-        new Thread(game).start();
+        game = new Othello();
+        cpuThread = new Thread(game);
+        cpuThread.start();
 	}
 
     public void run(){
 
+        int count = 0;
+        Point nextHand;
         try{
             //駒の初期配置
             if(initPiece){
@@ -89,17 +120,42 @@ class Othello extends Frame implements Runnable{
                 panelGraphics.fillOval(315, 275, 40, 40);
                 panelGraphics.drawOval(365, 275, 40, 40);
                 initPiece = false;
+                putCandidateArea(revAllList);
             }
+            
+            while(onTheGame){
                 Thread.sleep(500);
-                scanCandidateArea();
+                if(active == 1 && Objects.nonNull(firstPlayer.getStrategy())){
+                    nextHand = firstPlayer.nextHand();
+                    revAllList = reversePiece((int)nextHand.getX(), (int)nextHand.getY());
+                    reverse(gridToPoint(nextHand));
+                    //putCandidateArea(revAllList);
+                    //revAllList.clear();
+                } else if (active == -1 && Objects.nonNull(secondPlayer.getStrategy())) {
+                    System.out.println(secondPlayer.nextHand());
+                    nextHand = secondPlayer.nextHand();
+                    revAllList = reversePiece((int)nextHand.getX(), (int)nextHand.getY());
+                    reverse(gridToPoint(nextHand));
+                    //putCandidateArea(revAllList);
+                    //revAllList.clear();
+                }
+                
+                System.out.println( (++count / 2) + "[sec]");
+            }
         }catch(InterruptedException e){
             System.out.println(e.toString());
         }
 
     }
 
+    public void itemStateChanged(ItemEvent ie){
+        System.out.println(ie.getItem() + "is selected.");
+        System.out.println(ie.paramString());
+    }
+
     private void initLayout(){
-        btn = new  Button("Submit");
+        startButton = new Button("Start");
+        exitButton = new Button("Exit");
 
         panel = new Panel(){
             public void paint(Graphics g){
@@ -118,8 +174,8 @@ class Othello extends Frame implements Runnable{
         panel.setBackground(boardGREEN);
         panel.setBounds(0,10,720,540);
 
-        btn.setBackground(new Color(128,0,128));
-        btn.setBounds(320,550,80,30);
+        startButton.setBounds(600,600,100,30);
+        exitButton.setBounds(600,640,100,30);
 
         titleLabel = new Label("Othello");
         titleLabel.setFont(new  Font(Font.SANS_SERIF, Font.BOLD, 32));
@@ -142,12 +198,70 @@ class Othello extends Frame implements Runnable{
         playerTurnLabel.setFont(turnLabelFont);
         playerTurnLabel.setBounds(300, 480, 200, 60);
 
+        Label whiteOperateLabel = new Label("白 - 先攻");
+        whiteOperateLabel.setBounds(10, 120, 80, 18);
+
+        whiteOperatePanel = new Panel();
+        whiteOperatePanel.setBackground(playerSilver);
+        whiteOperatePanel.setBounds(30, 560, 170, 150);
+
+        whitePlayerType = new CheckboxGroup();
+        whiteHuman = new Checkbox("1:人間", whitePlayerType, true);
+        whiteHuman.setBounds(10,10,160,18);
+        whiteHuman.addItemListener(this);
+        whiteRandom = new Checkbox("2:CPU(ランダム)", whitePlayerType, false);
+        whiteRandom.setBounds(10,30,160,18);
+        whiteRandom.addItemListener(this);
+        whiteTwoTree = new Checkbox("3:CPU(木探索-深さ2)", whitePlayerType, false);
+        whiteTwoTree.setBounds(10,50,160,18);
+        whiteTwoTree.addItemListener(this);
+        whiteThreeTree = new Checkbox("4:CPU(木探索-深さ3)", whitePlayerType, false);
+        whiteThreeTree.setBounds(10,70,160,18);
+        whiteThreeTree.addItemListener(this);
+
+        Label blackOperateLabel = new Label("黒 - 後攻");
+        blackOperateLabel.setBounds(10, 120, 80, 18);
+
+        blackOperatePanel = new Panel();
+        blackOperatePanel.setBackground(playerSilver);
+        blackOperatePanel.setBounds(210, 560, 170, 150);
+
+        blackPlayerType = new CheckboxGroup();
+        blackHuman = new Checkbox("1:人間", blackPlayerType, true);
+        blackHuman.setBounds(10,10,160,18);
+        blackHuman.addItemListener(this);
+        blackRandom = new Checkbox("2:CPU(ランダム)", blackPlayerType, false);
+        blackRandom.setBounds(10,30,160,18);
+        blackRandom.addItemListener(this);        
+        blackTwoTree = new Checkbox("3:CPU(木探索-深さ2)", blackPlayerType, false);
+        blackTwoTree.setBounds(10,50,160,18);
+        blackTwoTree.addItemListener(this);
+        blackThreeTree = new Checkbox("4:CPU(木探索-深さ3)", blackPlayerType, false);
+        blackThreeTree.setBounds(10,70,160,18);
+        blackThreeTree.addItemListener(this);
+
         panel.add(whiteCountLabel);
         panel.add(blackCountLabel);
         panel.add(playerTurnLabel);
         panel.add(titleLabel);
         add(panel);
-        add(btn);
+
+        whiteOperatePanel.add(whiteHuman);
+        whiteOperatePanel.add(whiteRandom);
+        whiteOperatePanel.add(whiteTwoTree);
+        whiteOperatePanel.add(whiteThreeTree);
+        whiteOperatePanel.add(whiteOperateLabel);
+        add(whiteOperatePanel);
+
+        blackOperatePanel.add(blackHuman);
+        blackOperatePanel.add(blackRandom);
+        blackOperatePanel.add(blackTwoTree);
+        blackOperatePanel.add(blackThreeTree);
+        blackOperatePanel.add(blackOperateLabel);
+        add(blackOperatePanel);
+
+        add(startButton);
+        add(exitButton);
 
         frameListener();
         panelListener();
@@ -211,55 +325,92 @@ class Othello extends Frame implements Runnable{
     private void panelListener(){
         panel.addMouseListener(new MouseAdapter(){
             public void mouseClicked(MouseEvent e){
-
-                String turnText = "";
                 //指す場所を選ぶ
                 handPoint = calcHandPoint(e.getPoint());
-
-                if(-1 < handPoint.getX() && -1 < handPoint.getY() && onTheGame){
-                    if(active == 1){
-                        //white
-                        reverseWhite((int)handPoint.getX(), (int)handPoint.getY());
-                    }else{
-                        //black
-                        reverseBlack((int)handPoint.getX(), (int)handPoint.getY());
-                    }
-
-                    firstPlayer.setScore(whiteCount());
-                    secondPlayer.setScore(blackCount());
-
-                    whiteCountLabel.setText("白" + firstPlayer.getScore());  
-                    blackCountLabel.setText("黒" + secondPlayer.getScore());
-
-                    if(restCount() == 0){
-                        onTheGame = false;
-                        if(secondPlayer.getScore() < firstPlayer.getScore() ){
-                            turnText = "白の勝ち";
-                        }else if(firstPlayer.getScore() < secondPlayer.getScore()){
-                            turnText = "黒の勝ち";
-                        }else{
-                            turnText = "引き分け";
-                        }
-                        playerTurnLabel.setText(turnText);
-                    } else {
-                        active *= -1;       //change player   
-                        turnMessage();
-                        scanCandidateArea();
-                    }
-                    revAllList.clear();
-                }
-                
+                //駒をひっくり返す
+                reverse(handPoint);        
             }
         });
     }
 
+    private void reverse(Point hand){
+        String turnText = "";
+        if(-1 < hand.getX() && -1 < hand.getY() && onTheGame){
+            if(active == 1){
+                //white
+                reverseWhite((int)hand.getX(), (int)hand.getY());
+            }else{
+                //black
+                reverseBlack((int)hand.getX(), (int)hand.getY());
+            }
+
+            firstPlayer.setScore(whiteCount());
+            secondPlayer.setScore(blackCount());
+
+            whiteCountLabel.setText("白" + firstPlayer.getScore());  
+            blackCountLabel.setText("黒" + secondPlayer.getScore());
+
+            if(restCount() == 0){
+                onTheGame = false;
+                if(secondPlayer.getScore() < firstPlayer.getScore() ){
+                    turnText = "白の勝ち";
+                }else if(firstPlayer.getScore() < secondPlayer.getScore()){
+                    turnText = "黒の勝ち";
+                }else{
+                    turnText = "引き分け";
+                }
+                playerTurnLabel.setText(turnText);
+            } else {
+                active *= -1;       //change player   
+                turnMessage();
+                putCandidateArea(revAllList);
+            }
+            revAllList.clear();
+        }
+    }
+
     private void buttonListener(){
-        btn.addActionListener(new ActionListener(){
+
+        startButton.addActionListener(new  ActionListener(){
+            public void actionPerformed(ActionEvent e){
+
+                int wtype = parsePlayerType(whitePlayerType.getSelectedCheckbox().getLabel());
+                int btype = parsePlayerType(blackPlayerType.getSelectedCheckbox().getLabel());
+
+                if( 1 == wtype){
+                    firstPlayer.setStrategy(null);
+                }else{
+                    firstPlayer.setStrategy(new RandomStrategy());
+                }
+
+                if( 1 == btype ){
+                    secondPlayer.setStrategy(null);
+                }else{
+                    secondPlayer.setStrategy(new RandomStrategy());
+                }
+
+                System.out.println(
+                    whitePlayerType.getSelectedCheckbox().
+                    getLabel() + "," + 
+                    blackPlayerType.getSelectedCheckbox().
+                    getLabel()
+                );
+                onTheGame = true; 
+                new Thread(game).start();          
+            }
+        });
+
+        exitButton.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent e){
                 System.out.println(e.paramString());
                 closed();
             }            
         });        
+    }
+
+    private int parsePlayerType(String name){
+        String[] sep = name.split(":");
+        return Integer.parseInt(sep[0]);
     }
 
     private Point calcHandPoint(Point p){
@@ -271,8 +422,8 @@ class Othello extends Frame implements Runnable{
         iY = (int)((p.getY() - 70.0) / 50);
 
         if( (-1 < iX && iX < 8) && (-1 < iY && iY < 8)){
-            reversePiece(iX, iY);
-            if(0 < revAllList.size()){
+            revAllList = reversePiece(iX, iY);
+            if(!revAllList.isEmpty()){
                 optPoint.setLocation(
                     165 + iX * 50,
                     75 + iY * 50);
@@ -281,13 +432,14 @@ class Othello extends Frame implements Runnable{
         return optPoint;
     }
 
-    private boolean reversePiece(Integer x, Integer y){
+    public static List<Point> reversePiece(Integer x, Integer y){
 
         List<Point> revLineList;
+        List<Point> revTotalList;
         int opposite;
 
-        revAllList = new ArrayList<>();
         revLineList = new ArrayList<>();
+        revTotalList = new ArrayList<>();
 
         // white
         if(active == 1 ){
@@ -306,10 +458,10 @@ class Othello extends Frame implements Runnable{
                 if(opposite == boardFlag[x - i][y - i]){       
                     revLineList.add(new Point(x - i, y - i));
                 } else if ( i != 1 && (opposite * -1) == boardFlag[x - i][y - i]){
-                    for(Point p :revLineList){
+                    for(Point p : revLineList){
                         System.out.println("[left - top]" + p);
                     }
-                    revAllList.addAll(revLineList);
+                    revTotalList.addAll(revLineList);
                     break;
                 } else {
                     break;
@@ -327,7 +479,7 @@ class Othello extends Frame implements Runnable{
                     for(Point p :revLineList){
                         System.out.println("[center - top]" + p);
                     }
-                    revAllList.addAll(revLineList);
+                    revTotalList.addAll(revLineList);
                     break;
                 } else {
                     break;
@@ -345,7 +497,7 @@ class Othello extends Frame implements Runnable{
                     for(Point p :revLineList){
                         System.out.println("[right - top]" + p);
                     }
-                    revAllList.addAll(revLineList);
+                    revTotalList.addAll(revLineList);
                     break;
                 } else {
                     break;
@@ -363,7 +515,7 @@ class Othello extends Frame implements Runnable{
                     for(Point p :revLineList){
                         System.out.println("[left]" + p);
                     }
-                    revAllList.addAll(revLineList);
+                    revTotalList.addAll(revLineList);
                     break;
                 } else {
                     break;
@@ -381,7 +533,7 @@ class Othello extends Frame implements Runnable{
                     for(Point p :revLineList){
                         System.out.println("[right]" + p);
                     }
-                    revAllList.addAll(revLineList);
+                    revTotalList.addAll(revLineList);
                     break;
                 } else {
                     break;
@@ -399,7 +551,7 @@ class Othello extends Frame implements Runnable{
                     for(Point p :revLineList){
                         System.out.println("[left - bottom]" + p);
                     }
-                    revAllList.addAll(revLineList);
+                    revTotalList.addAll(revLineList);
                     break;
                 } else {
                     break;
@@ -417,7 +569,7 @@ class Othello extends Frame implements Runnable{
                     for(Point p :revLineList){
                         System.out.println("[center - bottom]" + p);
                     }
-                    revAllList.addAll(revLineList);
+                    revTotalList.addAll(revLineList);
                     break;
                 } else {
                     break;
@@ -435,7 +587,7 @@ class Othello extends Frame implements Runnable{
                     for(Point p :revLineList){
                         System.out.println("[right - bottom]" + p);
                     }
-                    revAllList.addAll(revLineList);
+                    revTotalList.addAll(revLineList);
                     break;
                 } else {
                     break;
@@ -444,23 +596,20 @@ class Othello extends Frame implements Runnable{
         }
         revLineList.clear();
 
-        for(Point p : revAllList){
+        for(Point p : revTotalList){
             System.out.println("[All]" + p);
         }
 
-        return  0 < revAllList.size() ? true : false;
+        return revTotalList;
     }
 
-    private void scanCandidateArea(){
-
-        int count = 0;
-
+    private void putCandidateArea(List<Point> revTotalList){
+       int count = 0;
        for(int y = 0; y < 8; y++){
             for(int x = 0; x < 8; x++){
-                if(reversePiece(x, y) && boardFlag[x][y] == 0){
-                    panelGraphics.setColor(candidateBlue);
-                    panelGraphics.fillRect(x * 50 + 161,
-                           y * 50 + 71, 49, 49);
+                revTotalList = reversePiece(x, y);
+                if(!revTotalList.isEmpty() && boardFlag[x][y] == 0){
+                    putCandidate(panelGraphics,x,y);
                     count++;
                 } else {
                     if(boardFlag[x][y] == 1){
@@ -471,10 +620,9 @@ class Othello extends Frame implements Runnable{
                         putBlankArea(panelGraphics,x,y);
                     }                    
                 }
-                revAllList.clear();
+                revTotalList.clear();
             }
        }
-
        if(count == 0){
             active *= -1;
             turnMessage();
@@ -526,6 +674,11 @@ class Othello extends Frame implements Runnable{
 
     public void putBlankArea(Graphics g, int x, int y){
         g.setColor(boardGREEN);
+        g.fillRect(x * 50 + 161, y * 50 + 71, 49, 49);
+    }
+
+    public void putCandidate(Graphics g, int x, int y){
+        g.setColor(candidateBlue);
         g.fillRect(x * 50 + 161, y * 50 + 71, 49, 49);
     }
 
@@ -616,6 +769,8 @@ class Othello extends Frame implements Runnable{
     }
 
     private void closed(){
+        onTheGame = false;
+        cpuThread.interrupt();
         this.dispose();
     }
 
