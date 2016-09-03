@@ -93,6 +93,8 @@ class Othello extends Frame implements ItemListener, Runnable{
     static Othello game;
     static Thread cpuThread;
 
+    static Integer thinkTime;
+
     String[] strategyName = {
         "NotName","NotName",
         "RandomStrategy",
@@ -110,10 +112,12 @@ class Othello extends Frame implements ItemListener, Runnable{
         firstPlayer = new Player(2, null);
         secondPlayer = new Player(2, new RandomStrategy());
         revAllList = new ArrayList<>();
+
         initLayout();
     }
 
 	public static void main (String[] args){
+        thinkTime = Integer.parseInt(args[0]);
         game = new Othello();
         cpuThread = new Thread(game);
         cpuThread.start();
@@ -125,31 +129,41 @@ class Othello extends Frame implements ItemListener, Runnable{
         Point nextHand;
         try{
             //駒の初期配置
-            if(initPiece){
+            while(initPiece){
                 Thread.sleep(500);
                 panelGraphics = panel.getGraphics();
+
+                for(int x = 0; x < 8;x++){
+                    for(int y = 0; y < 8;y++){
+                        putBlankArea(panelGraphics,x,y);
+                    }
+                }
                 panelGraphics.drawOval(315, 225, 40, 40);
                 panelGraphics.fillOval(365, 225, 40, 40);
                 panelGraphics.fillOval(315, 275, 40, 40);
                 panelGraphics.drawOval(365, 275, 40, 40);
                 initPiece = false;
+                initBoard();
                 putCandidateArea(revAllList);
+                System.out.println("Init");
             }
             
             while(onTheGame){
-                Thread.sleep(500);
+                Thread.sleep(thinkTime * 100);
                 if(active == 1 && Objects.nonNull(firstPlayer.getStrategy())){
                     nextHand = firstPlayer.nextHand();
+                    revAllList.clear();
                     revAllList = reversePiece((int)nextHand.getX(), (int)nextHand.getY());
                     reverse(gridToPoint(nextHand));
                 } else if (active == -1 && Objects.nonNull(secondPlayer.getStrategy())) {
-                    System.out.println(secondPlayer.nextHand());
                     nextHand = secondPlayer.nextHand();
+                    revAllList.clear();
                     revAllList = reversePiece((int)nextHand.getX(), (int)nextHand.getY());
                     reverse(gridToPoint(nextHand));
                 }
-                
-                System.out.println( (++count / 2) + "[sec]");
+                if(count % 2 == 0){
+                    System.out.println( (++count / 2) + "[sec]");
+                }
             }
         }catch(InterruptedException e){
             System.out.println(e.toString());
@@ -375,7 +389,7 @@ class Othello extends Frame implements ItemListener, Runnable{
             whiteCountLabel.setText("白" + firstPlayer.getScore());  
             blackCountLabel.setText("黒" + secondPlayer.getScore());
 
-            if(restCount() == 0){
+            if(restCount() == 0 || firstPlayer.getScore() == 0 || secondPlayer.getScore() == 0){
                 onTheGame = false;
                 if(secondPlayer.getScore() < firstPlayer.getScore() ){
                     turnText = "白の勝ち";
@@ -385,6 +399,7 @@ class Othello extends Frame implements ItemListener, Runnable{
                     turnText = "引き分け";
                 }
                 playerTurnLabel.setText(turnText);
+                startButton.setEnabled(true);
             } else {
                 active *= -1;       //change player   
                 turnMessage();
@@ -420,7 +435,10 @@ class Othello extends Frame implements ItemListener, Runnable{
                     blackPlayerType.getSelectedCheckbox().
                     getLabel()
                 );
+
+                initPiece = true; 
                 onTheGame = true; 
+                startButton.setEnabled(false);
                 new Thread(game).start();          
             }
         });
@@ -508,7 +526,7 @@ class Othello extends Frame implements ItemListener, Runnable{
             opposite = 1;   // white
         }
         
-        System.out.println("x = " + x + ",y = " + y + ",op = " + opposite);
+        //System.out.println("x = " + x + ",y = " + y + ",op = " + opposite);
 
         //left - top
         if(0 < x && 0 < y){            
@@ -517,7 +535,7 @@ class Othello extends Frame implements ItemListener, Runnable{
                     revLineList.add(new Point(x - i, y - i));
                 } else if ( i != 1 && (opposite * -1) == boardFlag[x - i][y - i]){
                     for(Point p : revLineList){
-                        System.out.println("[left - top]" + p);
+                        //System.out.println("[left - top]" + p);
                     }
                     revTotalList.addAll(revLineList);
                     break;
@@ -535,7 +553,7 @@ class Othello extends Frame implements ItemListener, Runnable{
                     revLineList.add(new Point(x, y - i));
                 } else if ( i != 1 && (opposite * -1) == boardFlag[x][y - i]){
                     for(Point p :revLineList){
-                        System.out.println("[center - top]" + p);
+                        //System.out.println("[center - top]" + p);
                     }
                     revTotalList.addAll(revLineList);
                     break;
@@ -553,7 +571,7 @@ class Othello extends Frame implements ItemListener, Runnable{
                     revLineList.add(new Point(x + i, y - i));
                 } else if ( i != 1 && (opposite * -1) == boardFlag[x + i][y - i]){
                     for(Point p :revLineList){
-                        System.out.println("[right - top]" + p);
+                        //System.out.println("[right - top]" + p);
                     }
                     revTotalList.addAll(revLineList);
                     break;
@@ -571,7 +589,7 @@ class Othello extends Frame implements ItemListener, Runnable{
                     revLineList.add(new Point(x - i, y));
                 } else if ( i != 1 && (opposite * -1) == boardFlag[x - i][y]){
                     for(Point p :revLineList){
-                        System.out.println("[left]" + p);
+                        //System.out.println("[left]" + p);
                     }
                     revTotalList.addAll(revLineList);
                     break;
@@ -589,7 +607,7 @@ class Othello extends Frame implements ItemListener, Runnable{
                     revLineList.add(new Point(x + i, y));
                 } else if ( i != 1 && (opposite * -1) == boardFlag[x + i][y]){
                     for(Point p :revLineList){
-                        System.out.println("[right]" + p);
+                        //System.out.println("[right]" + p);
                     }
                     revTotalList.addAll(revLineList);
                     break;
@@ -607,7 +625,7 @@ class Othello extends Frame implements ItemListener, Runnable{
                     revLineList.add(new Point(x - i, y + i));
                 } else if ( i != 1 && (opposite * -1) == boardFlag[x - i][y + i]){
                     for(Point p :revLineList){
-                        System.out.println("[left - bottom]" + p);
+                        //System.out.println("[left - bottom]" + p);
                     }
                     revTotalList.addAll(revLineList);
                     break;
@@ -625,7 +643,7 @@ class Othello extends Frame implements ItemListener, Runnable{
                     revLineList.add(new Point(x, y + i));
                 } else if ( i != 1 && (opposite * -1) == boardFlag[x][y + i]){
                     for(Point p :revLineList){
-                        System.out.println("[center - bottom]" + p);
+                        //System.out.println("[center - bottom]" + p);
                     }
                     revTotalList.addAll(revLineList);
                     break;
@@ -643,7 +661,7 @@ class Othello extends Frame implements ItemListener, Runnable{
                     revLineList.add(new Point(x + i, y + i));
                 } else if ( i != 1 && (opposite * -1) == boardFlag[x + i][y + i]){
                     for(Point p :revLineList){
-                        System.out.println("[right - bottom]" + p);
+                        //System.out.println("[right - bottom]" + p);
                     }
                     revTotalList.addAll(revLineList);
                     break;
@@ -654,10 +672,11 @@ class Othello extends Frame implements ItemListener, Runnable{
         }
         revLineList.clear();
 
+        /*
         for(Point p : revTotalList){
             System.out.println("[All]" + p);
         }
-
+        */
         return revTotalList;
     }
 
@@ -824,6 +843,21 @@ class Othello extends Frame implements ItemListener, Runnable{
             turnText = "黒のターン";
         }
         playerTurnLabel.setText(turnText);
+    }
+
+    private void initBoard(){
+
+        for(int y = 0;y < 8;y++){
+            for(int x = 0;x < 8;x++){
+                if((x == 3 && y == 3) || (x == 4 && y == 4)){
+                    boardFlag[x][y] = 1;
+                }else if((x == 4 && y == 3) || (x == 3 && y == 4)){
+                    boardFlag[x][y] = -1;
+                } else {
+                    boardFlag[x][y] = 0;
+                }
+            }
+        }
     }
 
     private void closed(){

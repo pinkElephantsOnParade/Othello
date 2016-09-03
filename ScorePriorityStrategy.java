@@ -51,7 +51,7 @@ public class ScorePriorityStrategy implements Strategy{
 
         p = maxScore.get(r.nextInt(maxScore.size()));
 
-        System.out.println(p.toString());
+        System.out.println("***[ScorePriority]:" + p.toString());
 
         return p;
     }
