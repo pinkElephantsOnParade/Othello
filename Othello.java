@@ -78,16 +78,29 @@ class Othello extends Frame implements ItemListener, Runnable{
 
     Checkbox whiteHuman;
     Checkbox whiteRandom;
+    Checkbox whiteScorePriority;
     Checkbox whiteTwoTree;
     Checkbox whiteThreeTree;
+    Checkbox whiteEvaluate;
 
     Checkbox blackHuman;
     Checkbox blackRandom;
+    Checkbox blackScorePriority;
     Checkbox blackTwoTree;
     Checkbox blackThreeTree;
+    Checkbox blackEvaluate;
 
     static Othello game;
     static Thread cpuThread;
+
+    String[] strategyName = {
+        "NotName","NotName",
+        "RandomStrategy",
+        "ScorePriorityStrategy",
+        "TwoTreeStrategy",
+        "ThreeTreeStrategy",
+        "EvaluateStrategy"
+    };
 
     public Othello(){
         boardGREEN = new Color(0,222,0);
@@ -129,15 +142,11 @@ class Othello extends Frame implements ItemListener, Runnable{
                     nextHand = firstPlayer.nextHand();
                     revAllList = reversePiece((int)nextHand.getX(), (int)nextHand.getY());
                     reverse(gridToPoint(nextHand));
-                    //putCandidateArea(revAllList);
-                    //revAllList.clear();
                 } else if (active == -1 && Objects.nonNull(secondPlayer.getStrategy())) {
                     System.out.println(secondPlayer.nextHand());
                     nextHand = secondPlayer.nextHand();
                     revAllList = reversePiece((int)nextHand.getX(), (int)nextHand.getY());
                     reverse(gridToPoint(nextHand));
-                    //putCandidateArea(revAllList);
-                    //revAllList.clear();
                 }
                 
                 System.out.println( (++count / 2) + "[sec]");
@@ -199,7 +208,7 @@ class Othello extends Frame implements ItemListener, Runnable{
         playerTurnLabel.setBounds(300, 480, 200, 60);
 
         Label whiteOperateLabel = new Label("白 - 先攻");
-        whiteOperateLabel.setBounds(10, 120, 80, 18);
+        whiteOperateLabel.setBounds(10, 130, 80, 18);
 
         whiteOperatePanel = new Panel();
         whiteOperatePanel.setBackground(playerSilver);
@@ -212,15 +221,21 @@ class Othello extends Frame implements ItemListener, Runnable{
         whiteRandom = new Checkbox("2:CPU(ランダム)", whitePlayerType, false);
         whiteRandom.setBounds(10,30,160,18);
         whiteRandom.addItemListener(this);
-        whiteTwoTree = new Checkbox("3:CPU(木探索-深さ2)", whitePlayerType, false);
-        whiteTwoTree.setBounds(10,50,160,18);
+        whiteScorePriority = new Checkbox("3:CPU(スコア優先)", whitePlayerType, false);
+        whiteScorePriority.setBounds(10,50,160,18);
+        whiteScorePriority.addItemListener(this);
+        whiteTwoTree = new Checkbox("4:CPU(木探索-深さ2)", whitePlayerType, false);
+        whiteTwoTree.setBounds(10,70,160,18);
         whiteTwoTree.addItemListener(this);
-        whiteThreeTree = new Checkbox("4:CPU(木探索-深さ3)", whitePlayerType, false);
-        whiteThreeTree.setBounds(10,70,160,18);
+        whiteThreeTree = new Checkbox("5:CPU(木探索-深さ3)", whitePlayerType, false);
+        whiteThreeTree.setBounds(10,90,160,18);
         whiteThreeTree.addItemListener(this);
+        whiteEvaluate = new Checkbox("6:CPU(評価探索)", whitePlayerType, false);
+        whiteEvaluate.setBounds(10,110,160,18);
+        whiteEvaluate.addItemListener(this);
 
         Label blackOperateLabel = new Label("黒 - 後攻");
-        blackOperateLabel.setBounds(10, 120, 80, 18);
+        blackOperateLabel.setBounds(10, 130, 80, 18);
 
         blackOperatePanel = new Panel();
         blackOperatePanel.setBackground(playerSilver);
@@ -233,12 +248,18 @@ class Othello extends Frame implements ItemListener, Runnable{
         blackRandom = new Checkbox("2:CPU(ランダム)", blackPlayerType, false);
         blackRandom.setBounds(10,30,160,18);
         blackRandom.addItemListener(this);        
-        blackTwoTree = new Checkbox("3:CPU(木探索-深さ2)", blackPlayerType, false);
-        blackTwoTree.setBounds(10,50,160,18);
+        blackScorePriority = new Checkbox("3:CPU(スコア優先)", blackPlayerType, false);
+        blackScorePriority.setBounds(10,50,160,18);
+        blackScorePriority.addItemListener(this);
+        blackTwoTree = new Checkbox("4:CPU(木探索-深さ2)", blackPlayerType, false);
+        blackTwoTree.setBounds(10,70,160,18);
         blackTwoTree.addItemListener(this);
-        blackThreeTree = new Checkbox("4:CPU(木探索-深さ3)", blackPlayerType, false);
-        blackThreeTree.setBounds(10,70,160,18);
+        blackThreeTree = new Checkbox("5:CPU(木探索-深さ3)", blackPlayerType, false);
+        blackThreeTree.setBounds(10,90,160,18);
         blackThreeTree.addItemListener(this);
+        blackEvaluate = new Checkbox("6:CPU(評価探索)", blackPlayerType, false);
+        blackEvaluate.setBounds(10,110,160,18);
+        blackEvaluate.addItemListener(this);
 
         panel.add(whiteCountLabel);
         panel.add(blackCountLabel);
@@ -248,15 +269,19 @@ class Othello extends Frame implements ItemListener, Runnable{
 
         whiteOperatePanel.add(whiteHuman);
         whiteOperatePanel.add(whiteRandom);
+        whiteOperatePanel.add(whiteScorePriority);
         whiteOperatePanel.add(whiteTwoTree);
         whiteOperatePanel.add(whiteThreeTree);
+        whiteOperatePanel.add(whiteEvaluate);
         whiteOperatePanel.add(whiteOperateLabel);
         add(whiteOperatePanel);
 
         blackOperatePanel.add(blackHuman);
         blackOperatePanel.add(blackRandom);
+        blackOperatePanel.add(blackScorePriority);
         blackOperatePanel.add(blackTwoTree);
         blackOperatePanel.add(blackThreeTree);
+        blackOperatePanel.add(blackEvaluate);
         blackOperatePanel.add(blackOperateLabel);
         add(blackOperatePanel);
 
@@ -372,7 +397,7 @@ class Othello extends Frame implements ItemListener, Runnable{
     private void buttonListener(){
 
         startButton.addActionListener(new  ActionListener(){
-            public void actionPerformed(ActionEvent e){
+            public void actionPerformed(ActionEvent e) {
 
                 int wtype = parsePlayerType(whitePlayerType.getSelectedCheckbox().getLabel());
                 int btype = parsePlayerType(blackPlayerType.getSelectedCheckbox().getLabel());
@@ -380,13 +405,13 @@ class Othello extends Frame implements ItemListener, Runnable{
                 if( 1 == wtype){
                     firstPlayer.setStrategy(null);
                 }else{
-                    firstPlayer.setStrategy(new RandomStrategy());
+                    setFirstCPUStrategy(wtype);
                 }
 
                 if( 1 == btype ){
                     secondPlayer.setStrategy(null);
                 }else{
-                    secondPlayer.setStrategy(new RandomStrategy());
+                    setSecondCPUStrategy(btype);
                 }
 
                 System.out.println(
@@ -406,6 +431,39 @@ class Othello extends Frame implements ItemListener, Runnable{
                 closed();
             }            
         });        
+    }
+
+    private void setFirstCPUStrategy(int type){
+
+        try{
+            Class cs = Class.forName(strategyName[type]);
+            Object obj = (Strategy)cs.newInstance();
+            if( obj instanceof Strategy){
+                firstPlayer.setStrategy((Strategy)obj);
+            }
+        }catch(ClassNotFoundException e){
+            System.out.println(e.toString());
+        }catch(InstantiationException e){
+            System.out.println(e.toString());
+        }catch(IllegalAccessException e){
+            System.out.println(e.toString());
+        }
+    }
+
+    private void setSecondCPUStrategy(int type){
+        try{
+            Class cs = Class.forName(strategyName[type]);
+            Object obj = (Strategy)cs.newInstance();
+            if( obj instanceof Strategy){
+                secondPlayer.setStrategy((Strategy)obj);
+            }
+        }catch(ClassNotFoundException e){
+            System.out.println(e.toString());
+        }catch(InstantiationException e){
+            System.out.println(e.toString());
+        }catch(IllegalAccessException e){
+            System.out.println(e.toString());
+        }
     }
 
     private int parsePlayerType(String name){
@@ -744,16 +802,16 @@ class Othello extends Frame implements ItemListener, Runnable{
 
     private Point gridToPoint(Point g){
         Point pt = new Point(
-            (int)(g.getX()) * 50 + 160,
-            (int)(g.getY()) * 50 + 70
+            (int)(g.getX()) * 50 + 165,
+            (int)(g.getY()) * 50 + 75
             );
         return pt;
     }
 
     private Point gridToPoint(int x, int y){
         Point pt = new Point(
-            x * 50 + 160,
-            y * 50 + 70
+            x * 50 + 165,
+            y * 50 + 75
             );
         return pt;
     }
