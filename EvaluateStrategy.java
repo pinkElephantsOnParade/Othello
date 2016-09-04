@@ -10,7 +10,7 @@ import java.util.Random;
 public class EvaluateStrategy implements Strategy{
 
 
-    Integer[][] evalBoard = {
+    static Integer[][] evalBoard = {
         {120, -20, 20,  5,  5, 20, -20, 120},
         {-20, -40, -5, -5, -5, -5, -40, -20},
         {20,   -5, 15,  3,  3, 15,  -5,  20},
@@ -60,12 +60,6 @@ public class EvaluateStrategy implements Strategy{
                 maxScore.add(sa);
             }
         }
-
-        /*
-        int idx = r.nextInt(maxScore.size());
-        System.out.println(idx);
-        p = maxScore.get(idx);
-        */
 
         p = maxScore.get(r.nextInt(maxScore.size()));
 

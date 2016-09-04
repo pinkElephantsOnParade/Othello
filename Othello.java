@@ -680,6 +680,171 @@ class Othello extends Frame implements ItemListener, Runnable{
         return revTotalList;
     }
 
+    public static List<Point> reversePiece(Integer x, Integer y, Integer[][] board, Integer active){
+
+        List<Point> revLineList;
+        List<Point> revTotalList;
+        int opposite;
+
+        revLineList = new ArrayList<>();
+        revTotalList = new ArrayList<>();
+
+        // white
+        if(active == 1 ){
+            opposite = -1;   // black
+        } 
+        // black
+        else{
+            opposite = 1;   // white
+        }
+        
+        //left - top
+        if(0 < x && 0 < y){            
+            for(int i = 1 ; 0 < x - i && 0 < y - i ; i++){
+                if(opposite == board[x - i][y - i]){       
+                    revLineList.add(new Point(x - i, y - i));
+                } else if ( i != 1 && (opposite * -1) == board[x - i][y - i]){
+                    for(Point p : revLineList){
+                        //System.out.println("[left - top]" + p);
+                    }
+                    revTotalList.addAll(revLineList);
+                    break;
+                } else {
+                    break;
+                }
+            }
+        }
+        revLineList.clear();
+
+        //center - top
+        if(0 < y){            
+            for(int i = 1 ; 0 < y - i ; i++){
+                if(opposite == board[x][y - i]){       
+                    revLineList.add(new Point(x, y - i));
+                } else if ( i != 1 && (opposite * -1) == board[x][y - i]){
+                    for(Point p :revLineList){
+                        //System.out.println("[center - top]" + p);
+                    }
+                    revTotalList.addAll(revLineList);
+                    break;
+                } else {
+                    break;
+                }
+            }
+        }
+        revLineList.clear();
+
+        //right - top
+        if(x < 8 && 0 < y){            
+            for(int i = 1 ; x + i < 8 && 0 < y - i ; i++){
+                if(opposite == board[x + i][y - i]){       
+                    revLineList.add(new Point(x + i, y - i));
+                } else if ( i != 1 && (opposite * -1) == board[x + i][y - i]){
+                    for(Point p :revLineList){
+                        //System.out.println("[right - top]" + p);
+                    }
+                    revTotalList.addAll(revLineList);
+                    break;
+                } else {
+                    break;
+                }
+            }
+        }
+        revLineList.clear();
+
+        //left
+        if( 0 < x ){            
+            for(int i = 1 ; 0 < x - i ; i++){
+                if(opposite == board[x - i][y]){       
+                    revLineList.add(new Point(x - i, y));
+                } else if ( i != 1 && (opposite * -1) == board[x - i][y]){
+                    for(Point p :revLineList){
+                        //System.out.println("[left]" + p);
+                    }
+                    revTotalList.addAll(revLineList);
+                    break;
+                } else {
+                    break;
+                }
+            }
+        }
+        revLineList.clear();
+
+        //right
+        if( x < 8){            
+            for(int i = 1 ; x + i < 8; i++){
+                if(opposite == board[x + i][y]){       
+                    revLineList.add(new Point(x + i, y));
+                } else if ( i != 1 && (opposite * -1) == board[x + i][y]){
+                    for(Point p :revLineList){
+                        //System.out.println("[right]" + p);
+                    }
+                    revTotalList.addAll(revLineList);
+                    break;
+                } else {
+                    break;
+                }
+            }
+        }
+        revLineList.clear();
+
+        //left - bottom
+        if(0 < x && y < 8){            
+            for(int i = 1 ; 0 < x - i && y + i < 8; i++){
+                if(opposite == board[x - i][y + i]){       
+                    revLineList.add(new Point(x - i, y + i));
+                } else if ( i != 1 && (opposite * -1) == board[x - i][y + i]){
+                    for(Point p :revLineList){
+                        //System.out.println("[left - bottom]" + p);
+                    }
+                    revTotalList.addAll(revLineList);
+                    break;
+                } else {
+                    break;
+                }
+            }
+        }
+        revLineList.clear();
+
+        //center - bottom
+        if(y < 8){            
+            for(int i = 1 ; y + i < 8; i++){
+                if(opposite == board[x][y + i]){       
+                    revLineList.add(new Point(x, y + i));
+                } else if ( i != 1 && (opposite * -1) == board[x][y + i]){
+                    for(Point p :revLineList){
+                        //System.out.println("[center - bottom]" + p);
+                    }
+                    revTotalList.addAll(revLineList);
+                    break;
+                } else {
+                    break;
+                }
+            }
+        }
+        revLineList.clear();
+
+        //right - bottom
+        if(x < 8 && y < 8){            
+            for(int i = 1 ; x + i < 8 && y + i < 8; i++){
+                if(opposite == board[x + i][y + i]){       
+                    revLineList.add(new Point(x + i, y + i));
+                } else if ( i != 1 && (opposite * -1) == board[x + i][y + i]){
+                    for(Point p :revLineList){
+                        //System.out.println("[right - bottom]" + p);
+                    }
+                    revTotalList.addAll(revLineList);
+                    break;
+                } else {
+                    break;
+                }
+            }
+        }
+        revLineList.clear();
+
+        return revTotalList;
+    }
+
     private void putCandidateArea(List<Point> revTotalList){
        int count = 0;
        for(int y = 0; y < 8; y++){
@@ -792,7 +957,7 @@ class Othello extends Frame implements ItemListener, Runnable{
         return count;
     }
 
-    private int restCount(){
+    static public int restCount(){
         int count = 0;
         for(int y = 0; y < 8;y++){
             for(int x = 0; x < 8;x++){
