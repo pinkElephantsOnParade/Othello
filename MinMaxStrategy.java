@@ -113,9 +113,25 @@ public class MinMaxStrategy implements Strategy{
             p = resultScore.get(r.nextInt(resultScore.size()));
             System.out.println("***[[Result]]:" + p.toString());
         }else{
-            //残り5マユ以下の場合
+            //残り5マユ以下の場合、スコアの高いエリアを採用
+
+            int max = -999;
+            for(ScoreArea sa : roots.getRelatedArea()){
+                if(max < sa.getScore()){
+                    max = sa.getScore();
+                }
+            }
+
+            for(ScoreArea sa : roots.getRelatedArea()){
+                if(max == sa.getScore()){
+                    p = sa;
+                    break;
+                }
+            }
+            /*
             p = roots.getRelatedArea().get(
                             r.nextInt(roots.getRelatedArea().size()));
+            */
         }
 
         return p;
